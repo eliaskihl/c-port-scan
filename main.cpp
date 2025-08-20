@@ -102,7 +102,7 @@ void pingAddressInNetwork(){
       
       for (int i=0; i <= 10 && !stop; i++){
         std::string ipAddr = baseAddr + std::to_string(i);
-
+        // Add different command dependent on the OS
         std::string command = "ping -c 1 -W 1 " + ipAddr + " > /dev/null";
 
         int result = system(command.c_str());
