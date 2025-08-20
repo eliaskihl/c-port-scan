@@ -6,12 +6,16 @@
 #include <unistd.h>
 #include <csignal>
 #include <atomic>
+#include <vector>
+#include <thread>
 
 bool is_port_open(std::string ip, int port);
-void pingAddressInNetwork();
+void pingAddressInNetwork(std::string baseAddr,int start, int end);
+void runPing();
 int main(){
 
-    pingAddressInNetwork();
+    runPing();
+    exit(0);
     // Scan specific port
     std::string hostName;
     hostName = "172.20.32.1";
@@ -39,6 +43,7 @@ int main(){
 
     return 0;
 }
+//TODO: Make main menu
 
 bool is_port_open(std::string ip, int port){
     struct sockaddr_in addr;
@@ -94,13 +99,44 @@ bool is_port_open(std::string ip, int port){
 std::atomic<bool> stop{false};
 void handle_sigint(int) {
           stop = true;
-      }
-void pingAddressInNetwork(){
-      std::string baseAddr = "192.168.1."; // Should be replaced such that is it an argument inputted from the user
+}
+void alive(int a) { std::cout<<"Alive! ID:" << a << "\n";}
+
+
+void runPing(){
+  std::string baseAddr = "192.168.1."; // Should be replaced such that is it an argument inputted from the user
+  // create threads 
+  std::vector<std::thread> threads;
+  const size_t number_of_threads = 4;
+  threads.reserve(number_of_threads);
+  // split the address space from 0 - 255 in even chunks
+  const int totalAddr = 256;
+  int chunk = totalAddr / number_of_threads;
+  int remainder = totalAddr  % number_of_threads;
+  std::cout << remainder << std::endl;
+  int start = 0;
+  int end;
+  
+  // run threads with specific ranges
+  for (int i=0; i < number_of_threads; i++){
+    
+    start = (i)*(chunk);
+    end = (i+1)*(chunk)-1;
+    if (i == (number_of_threads-1)){
+      end += remainder;
+    }
+    //std::cout << start << " TO " << end << " DIFF: " << end-start << std::endl;
+    threads.emplace_back(std::thread(pingAddressInNetwork, baseAddr, start, end));
+  }
+  
+  // join threads
+  for (int i = 0; i < threads.size(); ++i) {
+        threads[i].join();
+  }
+}
+void pingAddressInNetwork(std::string baseAddr,int start, int end){
       
-      signal(SIGINT, handle_sigint);
-      
-      for (int i=0; i <= 10 && !stop; i++){
+      for (int i=start; i <= end; i++){
         std::string ipAddr = baseAddr + std::to_string(i);
         // Add different command dependent on the OS
         std::string command = "ping -c 1 -W 1 " + ipAddr + " > /dev/null";
