@@ -4,9 +4,14 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <csignal>
+#include <atomic>
 
 bool is_port_open(std::string ip, int port);
+void pingAddressInNetwork();
 int main(){
+
+    pingAddressInNetwork();
     // Scan specific port
     std::string hostName;
     hostName = "172.20.32.1";
@@ -85,4 +90,27 @@ bool is_port_open(std::string ip, int port){
 
 
 
+}
+std::atomic<bool> stop{false};
+void handle_sigint(int) {
+          stop = true;
+      }
+void pingAddressInNetwork(){
+      std::string baseAddr = "192.168.1."; // Should be replaced such that is it an argument inputted from the user
+      
+      signal(SIGINT, handle_sigint);
+      
+      for (int i=0; i <= 10 && !stop; i++){
+        std::string ipAddr = baseAddr + std::to_string(i);
+
+        std::string command = "ping -c 1 -W 1 " + ipAddr + " > /dev/null";
+
+        int result = system(command.c_str());
+        if (result == 0){
+          std::cout << "Successfully reached: " << ipAddr << std::endl;
+        }
+        else{
+          std::cout << "Failed to reach: " << ipAddr << std::endl;
+        }
+      }
 }
